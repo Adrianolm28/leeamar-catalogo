@@ -19,11 +19,7 @@ import Pagination from '../components/Pagination';
 const PAGE_SIZE = 12;
 
 const emptyCustomer = {
-  name: '',
   document: '',
-  company: '',
-  phone: '',
-  email: '',
   notes: '',
 };
 
@@ -126,7 +122,10 @@ function CatalogPage() {
 
     try {
       const response = await api.post('/quotes', {
-        customer,
+        customer: {
+          document: customer.document,
+          notes: customer.notes,
+        },
         items: cart.map((item) => ({
           code: item.codeReference || item.recordId,
           name: item.name,
@@ -320,31 +319,14 @@ function CatalogPage() {
               <div className="quote-divider" />
               <form className="customer-form" onSubmit={sendQuote}>
                 <div className="form-heading">
-                  <h3>Datos de contacto</h3>
+                  <h3>Identificación del cliente</h3>
                   <span>* Obligatorio</span>
                 </div>
                 <label>
                   Documento (DNI / RUC) *
                   <input name="document" value={customer.document} onChange={updateCustomer} required maxLength={20} inputMode="numeric" placeholder="Ingresa tu documento" />
                 </label>
-                <label>
-                  Nombre completo *
-                  <input name="name" value={customer.name} onChange={updateCustomer} required maxLength={100} placeholder="Tu nombre" />
-                </label>
-                <label>
-                  Empresa <span>Opcional</span>
-                  <input name="company" value={customer.company} onChange={updateCustomer} maxLength={120} placeholder="Nombre de tu empresa" />
-                </label>
-                <div className="form-row">
-                  <label>
-                    Teléfono *
-                    <input name="phone" value={customer.phone} onChange={updateCustomer} required maxLength={30} placeholder="Tu teléfono" />
-                  </label>
-                  <label>
-                    Correo <span>Opcional</span>
-                    <input type="email" name="email" value={customer.email} onChange={updateCustomer} maxLength={150} placeholder="correo@ejemplo.com" />
-                  </label>
-                </div>
+                <p className="privacy-note">Buscaremos los datos registrados del cliente directamente en Odoo utilizando este documento.</p>
                 <label>
                   Comentarios <span>Opcional</span>
                   <textarea name="notes" value={customer.notes} onChange={updateCustomer} rows="3" maxLength={500} placeholder="Cuéntanos qué necesitas..." />
@@ -353,7 +335,7 @@ function CatalogPage() {
                   {sending ? 'Enviando solicitud...' : 'Solicitar cotización'}
                   <ShoppingBag size={16} />
                 </button>
-                <p className="privacy-note"><ShieldCheck size={14} /> Tus datos se utilizarán para atender tu solicitud.</p>
+                <p className="privacy-note"><ShieldCheck size={14} /> El documento se utilizará para identificar tu ficha en Odoo.</p>
               </form>
             </div>
           </aside>
