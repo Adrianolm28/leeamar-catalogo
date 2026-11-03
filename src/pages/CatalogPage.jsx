@@ -20,6 +20,7 @@ const PAGE_SIZE = 12;
 
 const emptyCustomer = {
   name: '',
+  document: '',
   company: '',
   phone: '',
   email: '',
@@ -322,6 +323,10 @@ function CatalogPage() {
                   <h3>Datos de contacto</h3>
                   <span>* Obligatorio</span>
                 </div>
+                <label>
+                  Documento (DNI / RUC) *
+                  <input name="document" value={customer.document} onChange={updateCustomer} required maxLength={20} inputMode="numeric" placeholder="Ingresa tu documento" />
+                </label>
                 <label>
                   Nombre completo *
                   <input name="name" value={customer.name} onChange={updateCustomer} required maxLength={100} placeholder="Tu nombre" />
