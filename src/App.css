@@ -65,9 +65,17 @@
 .product-details { padding: 14px; }
 .product-code { color: #648a7c; font-size: 10px; font-weight: 700; letter-spacing: .04em; }
 .product-details h3 { min-height: 47px; margin: 8px 0 12px; color: #2a4137; font: 700 13px/1.45 Manrope, sans-serif; }
-.availability { display: flex; align-items: center; gap: 7px; margin-bottom: 13px; color: #7a8c81; font-size: 10px; }
-.availability span { width: 7px; height: 7px; border-radius: 50%; background: #d8a45d; }
+.availability { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; color: #7a8c81; font-size: 10px; }
+.availability span { flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: #d8a45d; }
+.availability.available { color: #397a5b; }
 .availability.available span { background: #4f9c78; }
+.availability.check-stock { color: #9a7546; }
+.availability.check-stock span { background: #d8a45d; }
+.availability.stale { color: #a06c32; }
+.availability.stale span { background: #d8a45d; }
+.availability.unavailable { color: #87938b; }
+.availability.unavailable span { background: #aab5ae; }
+.availability-updated { display: block; margin-bottom: 13px; color: #98a79e; font-size: 9px; line-height: 1.4; }
 .add-product-button { width: 100%; min-height: 38px; display: flex; align-items: center; justify-content: center; gap: 7px; color: var(--brand); background: #edf5f0; border: 1px solid #e3eee7; border-radius: 6px; font-size: 10px; font-weight: 700; }
 .add-product-button:hover { background: #e1efe7; }
 .loading-panel, .empty-catalog { min-height: 245px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 9px; color: #8b9b91; background: #fff; border: 1px dashed #dce7df; border-radius: 10px; text-align: center; }
@@ -298,4 +306,39 @@
   .admin-login-card { padding: 26px 21px; }
   .admin-header-actions { gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
   .logout-button { padding: 7px 8px; font-size: 9px; }
+}
+
+/* Productos sin stock según su procedencia */
+.add-product-button.add-product-blocked {
+  color: #95652a;
+  background: #fff7e8;
+  border-color: #f0dfbd;
+}
+
+.add-product-button.add-product-blocked:hover {
+  background: #fff0d4;
+}
+
+.cart-line.cart-line-stock-warning {
+  padding: 11px;
+  margin: 8px 0;
+  background: #fff8e9;
+  border: 1px solid #f0d69f;
+  border-radius: 8px;
+}
+
+.cart-line-stock-warning .cart-line-copy strong {
+  color: #815b26;
+}
+
+.cart-stock-warning {
+  display: block;
+  margin-top: 7px;
+  padding: 7px 9px;
+  color: #93651f;
+  background: #fff0ce;
+  border: 1px solid #f2d99f;
+  border-radius: 6px;
+  font-size: 9px;
+  line-height: 1.45;
 }

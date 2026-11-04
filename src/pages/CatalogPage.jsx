@@ -23,6 +23,87 @@ const emptyCustomer = {
   notes: '',
 };
 
+const formatStockUpdatedAt = (value) => {
+  if (!value) return '';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return new Intl.DateTimeFormat('es-PE', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'America/Lima',
+  }).format(date);
+};
+
+const getStockPresentation = (stock) => {
+  if (
+    !stock
+    || stock.availableQuantity === null
+    || stock.availableQuantity === undefined
+    || !Number.isFinite(Number(stock.availableQuantity))
+    || ['unavailable', 'unmapped'].includes(stock.status)
+  ) {
+    return {
+      className: 'unavailable',
+      label: 'Disponibilidad no disponible',
+    };
+  }
+
+  const quantity = Number(stock.availableQuantity);
+  const formatted = new Intl.NumberFormat('es-PE', {
+    maximumFractionDigits: 2,
+  }).format(quantity);
+
+  if (stock.status === 'stale') {
+    return {
+      className: 'stale',
+      label: `${formatted} disponibles (dato desactualizado)`,
+    };
+  }
+
+  if (quantity > 0) {
+    return {
+      className: 'available',
+      label: `${formatted} disponibles`,
+    };
+  }
+
+  return {
+    className: 'check-stock',
+    label: 'Sin existencias',
+  };
+};
+
+const isNationalProduct = (product) => (
+  String(product?.category || '').trim().toUpperCase().startsWith('MR-NACIONAL /')
+);
+
+const getAvailableStock = (product) => {
+  const value = product?.stock?.availableQuantity;
+
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const quantity = Number(value);
+  return Number.isFinite(quantity) ? quantity : null;
+};
+
+const hasNoConfirmedStock = (product) => {
+  const quantity = getAvailableStock(product);
+
+  return (
+    quantity === null
+    || quantity <= 0
+    || product?.stock?.status !== 'available'
+  );
+};
+
+const cannotRequestProduct = (product) => (
+  !isNationalProduct(product) && hasNoConfirmedStock(product)
+);
+
 function CatalogPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -117,7 +198,36 @@ function CatalogPage() {
     [cart],
   );
 
-  const addProduct = (product) => {
+  const addProduct = async (product) => {
+    const national = isNationalProduct(product);
+    const stockQuantity = getAvailableStock(product);
+    const noStock = hasNoConfirmedStock(product);
+
+    if (!national && noStock) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Consulta con tu vendedor',
+        text: 'CONSULTE CON SU VENDEDOR SOBRE EL STOCK',
+        confirmButtonText: 'Entendido',
+      });
+      return;
+    }
+
+    if (national && noStock) {
+      const result = await Swal.fire({
+        icon: 'warning',
+        title: 'Disponibilidad por confirmar',
+        text: stockQuantity === null
+          ? 'No pudimos confirmar las existencias de este producto nacional. Puedes incluirlo en tu solicitud, pero tu vendedor deberá verificar su disponibilidad.'
+          : 'Este producto nacional no registra existencias disponibles. Puedes incluirlo en tu solicitud, pero tu vendedor deberá confirmar la disponibilidad.',
+        showCancelButton: true,
+        confirmButtonText: 'Agregar de todas formas',
+        cancelButtonText: 'Cancelar',
+      });
+
+      if (!result.isConfirmed) return;
+    }
+
     setCart((current) => {
       const found = current.some((item) => item.recordId === product.recordId);
 
@@ -169,6 +279,18 @@ function CatalogPage() {
       return;
     }
 
+    const blockedProduct = cart.find(cannotRequestProduct);
+
+    if (blockedProduct) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Consulta con tu vendedor',
+        text: 'CONSULTE CON SU VENDEDOR SOBRE EL STOCK',
+        confirmButtonText: 'Entendido',
+      });
+      return;
+    }
+
     setSending(true);
 
     try {
@@ -200,11 +322,15 @@ function CatalogPage() {
           : 'Tu solicitud fue recibida correctamente.',
         confirmButtonText: 'Listo',
       });
-    } catch {
+    } catch (error) {
+      const message = error.response?.status === 409
+        ? error.response?.data?.message || 'CONSULTE CON SU VENDEDOR SOBRE EL STOCK.'
+        : 'No se pudo completar la solicitud. Inténtalo nuevamente o comunícate con soporte.';
+
       await Swal.fire({
-        icon: 'error',
-        title: 'No se pudo enviar',
-        text: 'No se pudo completar la solicitud. Inténtalo nuevamente o comunícate con soporte.',
+        icon: error.response?.status === 409 ? 'warning' : 'error',
+        title: error.response?.status === 409 ? 'Disponibilidad no confirmada' : 'No se pudo enviar',
+        text: message,
         confirmButtonText: 'Entendido',
       });
     } finally {
@@ -255,7 +381,7 @@ function CatalogPage() {
               <div>
                 <span className="eyebrow">CATÁLOGO LEEMARK</span>
                 <h2>Productos</h2>
-                <p>Selecciona los productos que deseas incluir en tu solicitud.</p>
+                <p>Consulta las existencias y selecciona los productos que deseas cotizar. La disponibilidad puede variar y será confirmada por nuestro equipo comercial.</p>
               </div>
               <span className="result-count">
                 {pagination ? `${pagination.total} productos` : ' '}
@@ -309,12 +435,31 @@ function CatalogPage() {
                       <div className="product-details">
                         <span className="product-code">{product.codeReference || 'Código no disponible'}</span>
                         <h3>{product.name}</h3>
-                        <div className={`availability ${product.availableQuantity > 0 ? 'available' : 'check-stock'}`}>
+                        <div
+                          className={`availability ${getStockPresentation(product.stock).className}`}
+                          title={`Última actualización: ${formatStockUpdatedAt(product.stock?.updatedAt) || 'Sin datos'}`}
+                        >
                           <span />
-                          {product.availableQuantity > 0 ? 'Disponible' : 'Consultar disponibilidad'}
+                          {getStockPresentation(product.stock).label}
                         </div>
-                        <button type="button" className="add-product-button" onClick={() => addProduct(product)}>
-                          <Plus size={16} /> Agregar a solicitud
+                        {product.stock?.updatedAt && (
+                          <small className="availability-updated">
+                            Actualizado: {formatStockUpdatedAt(product.stock.updatedAt)}
+                          </small>
+                        )}
+                        <button
+                          type="button"
+                          className={`add-product-button ${cannotRequestProduct(product) ? 'add-product-blocked' : ''}`}
+                          onClick={() => addProduct(product)}
+                        >
+                          {cannotRequestProduct(product)
+                            ? <ShieldCheck size={16} />
+                            : <Plus size={16} />}
+                          {cannotRequestProduct(product)
+                            ? 'Consultar con vendedor'
+                            : isNationalProduct(product) && hasNoConfirmedStock(product)
+                              ? 'Agregar con advertencia'
+                              : 'Agregar a solicitud'}
                         </button>
                       </div>
                     </article>
@@ -344,10 +489,18 @@ function CatalogPage() {
               {cart.length ? (
                 <div className="cart-lines">
                   {cart.map((item) => (
-                    <div className="cart-line" key={item.recordId}>
+                    <div
+                      className={`cart-line ${isNationalProduct(item) && hasNoConfirmedStock(item) ? 'cart-line-stock-warning' : ''}`}
+                      key={item.recordId}
+                    >
                       <div className="cart-line-copy">
                         <strong>{item.name}</strong>
                         <small>{item.codeReference || item.recordId}</small>
+                        {isNationalProduct(item) && hasNoConfirmedStock(item) && (
+                          <small className="cart-stock-warning">
+                            ⚠ Stock sin confirmar. Tu vendedor deberá validar la disponibilidad.
+                          </small>
+                        )}
                         <div className="quantity-control">
                           <button type="button" onClick={() => changeQuantity(item.recordId, -1)} aria-label="Disminuir cantidad"><Minus size={13} /></button>
                           <span>{item.quantity}</span>
