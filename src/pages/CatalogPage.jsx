@@ -32,6 +32,10 @@ function CatalogPage() {
   const [category, setCategory] = useState('');
   const [cart, setCart] = useState([]);
   const [customer, setCustomer] = useState(emptyCustomer);
+  const [sellers, setSellers] = useState([]);
+  const [sellerId, setSellerId] = useState('');
+  const [sellersLoading, setSellersLoading] = useState(true);
+  const [sellersError, setSellersError] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -41,6 +45,43 @@ function CatalogPage() {
     api.get('/catalog/categories')
       .then(({ data }) => setCategories(data.data || []))
       .catch(() => setCategories([]));
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadSellers = async () => {
+      setSellersLoading(true);
+      setSellersError('');
+
+      try {
+        const response = await api.get('/quotes/sellers', {
+          signal: controller.signal,
+        });
+
+        const availableSellers = response.data.data || [];
+        setSellers(availableSellers);
+        setSellerId((current) => (
+          availableSellers.some((seller) => String(seller.id) === current)
+            ? current
+            : ''
+        ));
+      } catch (error) {
+        if (error.code !== 'ERR_CANCELED') {
+          setSellers([]);
+          setSellerId('');
+          setSellersError(
+            'No se pudo cargar la lista de asesores. Actualiza la página e inténtalo nuevamente.',
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted) setSellersLoading(false);
+      }
+    };
+
+    loadSellers();
+
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -108,6 +149,16 @@ function CatalogPage() {
   const sendQuote = async (event) => {
     event.preventDefault();
 
+    if (!sellerId) {
+      await Swal.fire({
+        icon: 'info',
+        title: 'Selecciona un asesor',
+        text: 'Elige quién deseas que te atienda antes de enviar tu solicitud.',
+        confirmButtonText: 'Entendido',
+      });
+      return;
+    }
+
     if (!cart.length) {
       await Swal.fire({
         icon: 'info',
@@ -122,6 +173,7 @@ function CatalogPage() {
 
     try {
       const response = await api.post('/quotes', {
+        sellerId: Number(sellerId),
         customer: {
           document: customer.document,
           notes: customer.notes,
@@ -138,6 +190,7 @@ function CatalogPage() {
 
       setCart([]);
       setCustomer(emptyCustomer);
+      setSellerId('');
 
       await Swal.fire({
         icon: 'success',
@@ -317,6 +370,47 @@ function CatalogPage() {
               )}
 
               <div className="quote-divider" />
+
+              <div className="customer-form">
+                <div className="form-heading">
+                  <h3>Asesor comercial</h3>
+                  <span>* Obligatorio</span>
+                </div>
+
+                <label>
+                  ¿Quién deseas que te atienda? *
+                  <select
+                    name="sellerId"
+                    value={sellerId}
+                    onChange={(event) => setSellerId(event.target.value)}
+                    required
+                    disabled={sellersLoading || sellers.length === 0}
+                  >
+                    <option value="">
+                      {sellersLoading
+                        ? 'Cargando asesores...'
+                        : 'Selecciona un asesor'}
+                    </option>
+                    {sellers.map((seller) => (
+                      <option key={seller.id} value={seller.id}>
+                        {seller.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {sellersError && (
+                  <p className="inline-message" role="alert">{sellersError}</p>
+                )}
+
+                {!sellersLoading && !sellersError && sellers.length === 0 && (
+                  <p className="inline-message" role="status">
+                    Actualmente no hay asesores disponibles para atender solicitudes.
+                  </p>
+                )}
+              </div>
+
+              <div className="quote-divider" />
               <form className="customer-form" onSubmit={sendQuote}>
                 <div className="form-heading">
                   <h3>Identificación del cliente</h3>
@@ -331,7 +425,17 @@ function CatalogPage() {
                   Comentarios <span>Opcional</span>
                   <textarea name="notes" value={customer.notes} onChange={updateCustomer} rows="3" maxLength={500} placeholder="Cuéntanos qué necesitas..." />
                 </label>
-                <button type="submit" className="send-quote-button" disabled={sending || cart.length === 0}>
+                <button
+                  type="submit"
+                  className="send-quote-button"
+                  disabled={
+                    sending
+                    || cart.length === 0
+                    || !sellerId
+                    || sellersLoading
+                    || sellers.length === 0
+                  }
+                >
                   {sending ? 'Enviando solicitud...' : 'Solicitar cotización'}
                   <ShoppingBag size={16} />
                 </button>

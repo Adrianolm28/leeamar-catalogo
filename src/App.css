@@ -103,8 +103,8 @@
 .form-heading span, .customer-form label span { color: #95a198; font-size: 9px; font-weight: 400; }
 .customer-form { display: flex; flex-direction: column; gap: 12px; }
 .customer-form label { display: flex; flex-direction: column; gap: 6px; color: #53665b; font-size: 10px; font-weight: 700; }
-.customer-form input, .customer-form textarea { width: 100%; min-width: 0; padding: 10px; color: #263d33; background: #fbfcfa; border: 1px solid #e5ebe5; border-radius: 5px; outline: none; font-size: 11px; font-weight: 400; resize: vertical; }
-.customer-form input:focus, .customer-form textarea:focus { border-color: #78a99a; box-shadow: 0 0 0 3px rgba(40,117,101,.08); }
+.customer-form input, .customer-form textarea, .customer-form select { width: 100%; min-width: 0; padding: 10px; color: #263d33; background: #fbfcfa; border: 1px solid #e5ebe5; border-radius: 5px; outline: none; font-size: 11px; font-weight: 400; resize: vertical; }
+.customer-form input:focus, .customer-form textarea:focus, .customer-form select:focus { border-color: #78a99a; box-shadow: 0 0 0 3px rgba(40,117,101,.08); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
 .send-quote-button { width: 100%; min-height: 42px; padding: 11px 13px; font-size: 11px; }
 .send-quote-button:disabled { opacity: .55; }
