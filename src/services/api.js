@@ -14,7 +14,8 @@ api.interceptors.response.use(
   (error) => {
     if (
       error.response?.status === 401
-      && String(error.config?.url || '').startsWith('/admin/catalog')
+      && (String(error.config?.url || '').startsWith('/admin/catalog')
+        || String(error.config?.url || '').startsWith('/admin/purchases'))
     ) {
       window.dispatchEvent(new Event('leemark:admin-session-expired'));
     }

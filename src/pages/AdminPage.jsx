@@ -18,6 +18,7 @@ import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
 import api from '../services/api';
 import Pagination from '../components/Pagination';
+import AdminPurchasesPage from './AdminPurchasesPage';
 
 const PAGE_SIZE = 20;
 const STATUSES = ['PENDIENTE', 'APROBADO', 'OCULTO', 'EN REVISIÓN'];
@@ -30,6 +31,7 @@ const normalizeHeader = (value) => String(value ?? '')
 
 function AdminPage() {
   const [products, setProducts] = useState([]);
+  const [activeArea, setActiveArea] = useState('catalog');
   const [summary, setSummary] = useState(null);
   const [pagination, setPagination] = useState(null);
   const [page, setPage] = useState(1);
@@ -500,11 +502,14 @@ function AdminPage() {
           <span className="brand-copy"><strong>LEEMARK</strong><small>ADMINISTRACIÓN</small></span>
         </a>
         <div className="admin-header-actions">
+          <button type="button" className="logout-button" aria-pressed={activeArea === 'catalog'} onClick={() => setActiveArea('catalog')}>Catálogo</button>
+          <button type="button" className="logout-button" aria-pressed={activeArea === 'purchases'} onClick={() => setActiveArea('purchases')}>Compras</button>
           <a className="back-to-catalog" href="/"><ArrowLeft size={16} /> Volver al catálogo</a>
           <button type="button" className="logout-button" onClick={handleLogout}><LogOut size={15} /> Cerrar sesión</button>
         </div>
       </header>
 
+      {activeArea === 'purchases' ? <AdminPurchasesPage /> : (
       <main className="admin-main">
         <div className="admin-heading">
           <div>
@@ -668,6 +673,7 @@ function AdminPage() {
           </div>
         </section>
       </main>
+      )}
     </div>
   );
 }
